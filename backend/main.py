@@ -9,7 +9,11 @@ from fastapi.middleware.cors import CORSMiddleware
 import fitz  
 from groq import Groq
 
-from services.speech_and_vision import SarvamManager
+# --- NEW: Import the separated services ---
+from services.speech_to_text import SpeechToTextService
+from services.wound_analysis import WoundAnalysisService
+
+# --- Setup & Configuration ---
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -25,12 +29,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Initialize Groq Client (for document scanning)
 GROQ_KEY = os.getenv('GROQ_KEY')
 if not GROQ_KEY:
     logger.error("GROQ_KEY missing!")
-
 client = Groq(api_key=GROQ_KEY)
-ai_manager = SarvamManager()
+
+# --- NEW: Initialize distinct services ---
+speech_service = SpeechToTextService()
+vision_service = WoundAnalysisService()
+
+# --- Endpoints ---
 
 @app.post("/api/scan")
 async def scan_document(file: UploadFile = File(...)):
@@ -78,10 +87,11 @@ async def scan_document(file: UploadFile = File(...)):
 
 @app.post("/api/voice-to-text")
 async def process_voice(file: UploadFile = File(...)):
-    """SurgiVoice: Multilingual transcription."""
+    """SurgiVoice: Multilingual transcription via Sarvam AI."""
     try:
         audio_bytes = await file.read()
-        transcript = ai_manager.transcribe_hinglish(audio_bytes)
+        # --- NEW: Call the dedicated speech service ---
+        transcript = speech_service.transcribe(audio_bytes)
         return {"transcript": transcript}
     except Exception as e:
         logger.error(f"Voice Error: {str(e)}")
@@ -89,10 +99,11 @@ async def process_voice(file: UploadFile = File(...)):
 
 @app.post("/api/analyze-wound")
 async def process_wound(file: UploadFile = File(...)):
-    """SurgiVision: Clinical wound assessment."""
+    """SurgiVision: Clinical wound assessment via Groq Vision."""
     try:
         image_bytes = await file.read()
-        analysis = ai_manager.analyze_wound(image_bytes)
+        # --- NEW: Call the dedicated vision service ---
+        analysis = vision_service.analyze(image_bytes)
         return {"analysis": analysis}
     except Exception as e:
         logger.error(f"Vision Error: {str(e)}")
