@@ -9,11 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 import fitz  
 from groq import Groq
 
-# --- NEW: Import the separated services ---
 from services.speech_to_text import SpeechToTextService
 from services.wound_analysis import WoundAnalysisService
 
-# --- Setup & Configuration ---
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -92,7 +90,6 @@ async def process_voice(file: UploadFile = File(...)):
     """SurgiVoice: Multilingual transcription via Sarvam AI."""
     try:
         audio_bytes = await file.read()
-        # --- NEW: Call the dedicated speech service ---
         transcript = speech_service.transcribe(audio_bytes)
         return {"transcript": transcript}
     except Exception as e:
@@ -104,7 +101,6 @@ async def process_wound(file: UploadFile = File(...)):
     """SurgiVision: Clinical wound assessment via Groq Vision."""
     try:
         image_bytes = await file.read()
-        # --- NEW: Call the dedicated vision service ---
         analysis = vision_service.analyze(image_bytes)
         return {"analysis": analysis}
     except Exception as e:
