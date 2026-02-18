@@ -1,0 +1,6 @@
+venv/
+activate/
+__pycache__/
+node_modules/
+.env
+backup.env
