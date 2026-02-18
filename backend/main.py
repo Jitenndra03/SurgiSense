@@ -77,8 +77,7 @@ async def scan_document(file: UploadFile = File(...)):
             model="llama-3.3-70b-versatile", # Ensure you use a valid Groq model name
             response_format={"type": "json_object"}
         )
-
-        extracted_data = json.loads(chat_completion.choices[0].message.content)
+        extracted_data = json.loads(chat_completion.choices[0].message.content) 
         return {"status": "success", "data": extracted_data}
 
     except Exception as e:
