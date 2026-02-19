@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link } from "react-router";
 import {
   Heart,
@@ -16,10 +15,9 @@ import {
   Home,
 } from "lucide-react";
 import { Progress } from "../components/ui/Progress";
+import Vision from "../Vision";
 
 export default function Dashboard() {
-  const [selectedImage, setSelectedImage] = useState(null);
-
   const recoveryData = {
     patientName: "Margaret Johnson",
     surgeryType: "Hip Replacement",
@@ -50,17 +48,6 @@ export default function Dashboard() {
     { name: "Antibiotic (Cephalexin)", dosage: "1 capsule twice daily", refillDue: "7 days", status: "normal" },
     { name: "Blood Thinner (Apixaban)", dosage: "1 tablet daily", refillDue: "15 days", status: "normal" },
   ];
-
-  const handleImageUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSelectedImage(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-[#D3D0BC]">
@@ -186,73 +173,8 @@ export default function Dashboard() {
         </section>
 
         {/* Wound Analysis Section */}
-        <section id="wound" className="bg-white rounded-2xl p-6 shadow-sm scroll-mt-20">
-          <div className="flex items-center gap-2 mb-4">
-            <Camera className="w-6 h-6 text-[#3E435D]" />
-            <h2 className="text-[#3E435D] text-2xl font-semibold">Wound Analysis</h2>
-          </div>
-          
-          {!selectedImage ? (
-            <label className="block border-2 border-dashed border-[#9AA7B1] rounded-2xl p-8 text-center cursor-pointer hover:border-[#3E435D] transition-colors">
-              <Camera className="w-12 h-12 text-[#9AA7B1] mx-auto mb-3" />
-              <p className="text-[#3E435D] font-medium mb-1">Upload Wound Photo</p>
-              <p className="text-[#9AA7B1] text-sm">Tap to take or select a photo</p>
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handleImageUpload}
-              />
-            </label>
-          ) : (
-            <div className="space-y-4">
-              <div className="rounded-2xl overflow-hidden">
-                <img src={selectedImage} alt="Wound" className="w-full h-auto" />
-              </div>
-              
-              {/* AI Analysis Result */}
-              <div className="bg-[#9AA7B1]/10 rounded-2xl p-4 border-2 border-[#9AA7B1]">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="bg-[#9AA7B1] text-white px-3 py-1 rounded-lg text-sm font-semibold">
-                    AI Analysis
-                  </div>
-                  <CheckCircle className="w-5 h-5 text-[#9AA7B1]" />
-                  <span className="text-[#3E435D] font-semibold">Normal Healing</span>
-                </div>
-                <p className="text-[#3E435D] mb-3">
-                  Your incision appears to be healing well with no signs of infection. Continue current care routine.
-                </p>
-                <div className="mb-2">
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-[#9AA7B1]">Confidence</span>
-                    <span className="text-[#3E435D] font-semibold">94%</span>
-                  </div>
-                  <Progress value={94} className="h-2" />
-                </div>
-              </div>
-
-              <button
-                onClick={() => setSelectedImage(null)}
-                className="w-full border-2 border-[#3E435D] text-[#3E435D] py-3 rounded-2xl font-medium hover:bg-[#3E435D] hover:text-[#D3D0BC] transition-colors"
-              >
-                Upload New Photo
-              </button>
-            </div>
-          )}
-
-          {/* Safety Note */}
-          <div className="mt-4 bg-[#3E435D] rounded-2xl p-4">
-            <div className="flex items-start gap-2">
-              <AlertCircle className="w-5 h-5 text-[#CBC3A5] shrink-0 mt-0.5" />
-              <div>
-                <p className="text-[#D3D0BC] font-semibold mb-1">Medical Guidance</p>
-                <p className="text-[#9AA7B1] text-sm">
-                  AI analysis is for informational purposes only. Contact your healthcare provider if you have concerns.
-                </p>
-              </div>
-            </div>
-          </div>
+        <section id="wound" className="scroll-mt-20">
+          <Vision />
         </section>
 
         {/* Medications Preview */}
