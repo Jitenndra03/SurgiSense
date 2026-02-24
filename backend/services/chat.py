@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 class MedicalRAGService:
     def __init__(self):
         self.groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-        self.embedder = SentenceTransformer("all-MiniLM-L6-v2")
+        self.embedder = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
         self.index = None
         self.document_chunks = []
 
@@ -34,7 +34,7 @@ class MedicalRAGService:
             vector_dimension = embeddings.shape[1]
 
             self.index = faiss.IndexFlatL2(vector_dimension)
-            self.index.add(np.array(embeddings).astype('float32'))  #type: ignore
+            self.index.add(np.array(embeddings).astype('float32'))  # type: ignore
             
             return True
         except Exception as e:
@@ -53,10 +53,14 @@ class MedicalRAGService:
             retrieved_context = "\n\n".join([
                 self.document_chunks[i] for i in indices[0] if i < len(self.document_chunks)
             ])
-
             prompt = f"""You are a clinical AI assistant for SurgiSense answering questions about a patient's medical document. 
-            Use ONLY the following retrieved context to answer the doctor's question. 
+            Use ONLY the following retrieved context to answer the doctor or patient's question. 
             If the answer is not in the context, explicitly state "The document does not specify." Do not hallucinate.
+
+            CRITICAL INSTRUCTION: You must respond in the EXACT same language the user asked the question in. 
+            - If the user asks in English, reply in English.
+            - If the user asks in Hindi (Devanagari script), reply in Hindi.
+            - If the user asks in Hinglish (Hindi written in English alphabet, e.g., "Mera operation kab hua?"), reply in natural, conversational Hinglish.
 
             Context:
             {retrieved_context}
