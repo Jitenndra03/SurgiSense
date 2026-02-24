@@ -14,6 +14,7 @@ from services.record_digitization import digitize_discharge_summary
 from services.speech_to_text import SpeechToTextService
 from services.wound_analysis import WoundAnalysisService
 from services.chat import MedicalRAGService
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ENV_PATH = os.path.join(BASE_DIR, ".env")
 
@@ -42,7 +43,6 @@ client = Groq(api_key=GROQ_KEY)
 speech_service = SpeechToTextService()
 vision_service = WoundAnalysisService()
 
-
 @app.post("/api/scan")
 async def scan_document(file: UploadFile = File(...)):
     """Digitize medical PDFs/TXTs using Groq Llama/Mistral models."""
@@ -66,6 +66,7 @@ async def scan_document(file: UploadFile = File(...)):
 
         if text_content:
             rag.ingest_document(text_content)
+            logger.info("Successfully ingested into RAG via /api/scan")
 
         chat_completion = client.chat.completions.create(
             messages=[
@@ -118,7 +119,24 @@ async def process_wound(file: UploadFile = File(...)):
 @app.post("/api/digitize-record")
 async def digitize_record(file: UploadFile = File(...)):
     file_bytes = await file.read()
+    
+    # 1. Dashboard UI extraction
     result = digitize_discharge_summary(file_bytes)
+    
+    # 2. THE FIX: Extract text and feed the chatbot's FAISS memory
+    try:
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        text_content = ""
+        for page in doc:
+            text_content += str(page.get_text())
+        doc.close()
+        
+        if text_content.strip():
+            rag.ingest_document(text_content)
+            logger.info("Successfully ingested into RAG via /api/digitize-record")
+    except Exception as e:
+        logger.error(f"Failed to ingest for RAG: {e}")
+
     return {"data": result}
 
 class ChatRequest(BaseModel):
