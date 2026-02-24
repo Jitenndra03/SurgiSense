@@ -1,46 +1,29 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { Heart, ChevronLeft, Pill, AlertCircle, Clock, CheckCircle, Package } from "lucide-react";
 import { Progress } from "../components/ui/Progress";
 
 export default function Pharmacy() {
-  const medications = [
-    {
-      id: 1,
-      name: "Acetaminophen 500mg",
-      dosage: "2 tablets every 6 hours",
-      quantity: "60 tablets",
-      refillsLeft: 2,
-      daysRemaining: 3,
-      nextDose: "2:00 PM",
-      instructions: "Take with food. Do not exceed 8 tablets in 24 hours.",
-      status: "low",
-      progress: 15,
-    },
-    {
-      id: 2,
-      name: "Cephalexin 500mg",
-      dosage: "1 capsule twice daily",
-      quantity: "28 capsules",
-      refillsLeft: 0,
-      daysRemaining: 7,
-      nextDose: "6:00 PM",
-      instructions: "Complete full course even if feeling better. Take with water.",
-      status: "normal",
-      progress: 50,
-    },
-    {
-      id: 3,
-      name: "Apixaban 5mg",
-      dosage: "1 tablet daily",
-      quantity: "90 tablets",
-      refillsLeft: 3,
-      daysRemaining: 15,
-      nextDose: "8:00 PM",
-      instructions: "Blood thinner. Do not skip doses. Avoid alcohol.",
-      status: "normal",
-      progress: 85,
-    },
-  ];
+  const [medications, setMedications] = useState([]);
+  const [hasData, setHasData] = useState(true);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('surgisense_active_meds');
+    if (saved) {
+      try {
+        const parsedMeds = JSON.parse(saved);
+        if (parsedMeds && parsedMeds.length > 0) {
+          setMedications(parsedMeds);
+        } else {
+          setHasData(false);
+        }
+      } catch (e) {
+        setHasData(false);
+      }
+    } else {
+      setHasData(false);
+    }
+  }, []);
 
   const orderHistory = [
     { date: "Feb 10, 2026", medication: "Acetaminophen 500mg", status: "Delivered" },
@@ -75,66 +58,77 @@ export default function Pharmacy() {
             </span>
           </div>
 
-          <div className="space-y-4">
-            {medications.map((med) => (
-              <div key={med.id} className="bg-white rounded-2xl p-5 shadow-sm">
-                {/* Medication Header */}
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <h3 className="text-[#3E435D] text-xl font-semibold mb-1">{med.name}</h3>
-                    <p className="text-[#9AA7B1]">{med.dosage}</p>
-                  </div>
-                  {med.status === "low" && (
-                    <div className="bg-[#CBC3A5] text-[#3E435D] px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
-                      <AlertCircle className="w-4 h-4" />
-                      Low
+          {!hasData ? (
+            <div className="text-center py-10 border-2 border-dashed border-[#D3D0BC] rounded-xl bg-white shadow-sm">
+              <Pill className="w-10 h-10 text-[#CBC3A5] mx-auto mb-3" />
+              <p className="text-[#3E435D] font-medium mb-1">No Medications Found</p>
+              <p className="text-[#9AA7B1] text-sm mb-4">Please upload a discharge summary first to see your medications.</p>
+              <Link to="/dashboard" className="inline-block bg-[#3E435D] text-[#D3D0BC] px-6 py-2 rounded-xl font-medium hover:bg-[#4a5070] transition-colors">
+                Go to Dashboard
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {medications.map((med, index) => (
+                <div key={med.id || index} className="bg-white rounded-2xl p-5 shadow-sm">
+                  {/* Medication Header */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h3 className="text-[#3E435D] text-xl font-semibold mb-1">{med.name || med.medication_name || "Prescription"}</h3>
+                      <p className="text-[#9AA7B1]">{med.dosage || med.instructions || "Take as directed"}</p>
                     </div>
-                  )}
-                </div>
-
-                {/* Supply Progress */}
-                <div className="mb-4">
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="text-[#9AA7B1]">Supply Remaining</span>
-                    <span className="text-[#3E435D] font-semibold">{med.daysRemaining} days left</span>
+                    {med.status === "low" && (
+                      <div className="bg-[#CBC3A5] text-[#3E435D] px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
+                        <AlertCircle className="w-4 h-4" />
+                        Low
+                      </div>
+                    )}
                   </div>
-                  <Progress 
-                    value={med.progress} 
-                    className={`h-2 ${med.status === 'low' ? 'bg-[#CBC3A5]/30' : ''}`}
-                  />
-                </div>
 
-                {/* Next Dose */}
-                <div className="bg-[#D3D0BC] rounded-xl p-3 mb-4 flex items-center gap-3">
-                  <Clock className="w-5 h-5 text-[#3E435D]" />
-                  <div>
-                    <p className="text-[#9AA7B1] text-sm">Next Dose</p>
-                    <p className="text-[#3E435D] font-semibold">{med.nextDose}</p>
+                  {/* Supply Progress */}
+                  <div className="mb-4">
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-[#9AA7B1]">Supply Remaining</span>
+                      <span className="text-[#3E435D] font-semibold">{med.daysRemaining || "14"} days left</span>
+                    </div>
+                    <Progress
+                      value={med.progress || 100}
+                      className={`h-2 ${med.status === 'low' ? 'bg-[#CBC3A5]/30' : ''}`}
+                    />
+                  </div>
+
+                  {/* Next Dose */}
+                  <div className="bg-[#D3D0BC] rounded-xl p-3 mb-4 flex items-center gap-3">
+                    <Clock className="w-5 h-5 text-[#3E435D]" />
+                    <div>
+                      <p className="text-[#9AA7B1] text-sm">Next Dose</p>
+                      <p className="text-[#3E435D] font-semibold">{med.nextDose || "As directed"}</p>
+                    </div>
+                  </div>
+
+                  {/* Instructions */}
+                  <div className="border-t border-[#D3D0BC] pt-3 mb-4">
+                    <p className="text-[#3E435D] text-sm">
+                      <span className="font-semibold">Instructions:</span> {med.instructions || med.dosage || "Follow doctor's instructions."}
+                    </p>
+                  </div>
+
+                  {/* Refill Info */}
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm">
+                      <span className="text-[#9AA7B1]">Refills remaining:</span>
+                      <span className="text-[#3E435D] font-semibold ml-2">{med.refillsLeft || 0}</span>
+                    </div>
+                    {med.status === "low" && (
+                      <button className="bg-[#3E435D] text-[#D3D0BC] px-5 py-2 rounded-xl font-medium hover:bg-[#4a5070] transition-colors">
+                        Order Refill
+                      </button>
+                    )}
                   </div>
                 </div>
-
-                {/* Instructions */}
-                <div className="border-t border-[#D3D0BC] pt-3 mb-4">
-                  <p className="text-[#3E435D] text-sm">
-                    <span className="font-semibold">Instructions:</span> {med.instructions}
-                  </p>
-                </div>
-
-                {/* Refill Info */}
-                <div className="flex items-center justify-between">
-                  <div className="text-sm">
-                    <span className="text-[#9AA7B1]">Refills remaining:</span>
-                    <span className="text-[#3E435D] font-semibold ml-2">{med.refillsLeft}</span>
-                  </div>
-                  {med.status === "low" && (
-                    <button className="bg-[#3E435D] text-[#D3D0BC] px-5 py-2 rounded-xl font-medium hover:bg-[#4a5070] transition-colors">
-                      Order Refill
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Pharmacy Info */}
