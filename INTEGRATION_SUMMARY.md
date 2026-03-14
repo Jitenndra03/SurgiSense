@@ -1,11 +1,13 @@
 # Backend-Frontend Integration Summary
 
 ## Overview
+
 Successfully integrated the backend services with the frontend components for the SurgiSense AI surgical recovery assistant.
 
 ## Changes Made
 
 ### 1. **Backend Configuration** (`backend/main.py`)
+
 - **Updated CORS Configuration**: Added support for Vite frontend on port 5173 in addition to port 3000
   - Before: `allow_origins=["http://localhost:3000"]`
   - After: `allow_origins=["http://localhost:3000", "http://localhost:5173"]`
@@ -14,6 +16,7 @@ Successfully integrated the backend services with the frontend components for th
   - `WoundAnalysisService` for AI-powered wound analysis
 
 ### 2. **Frontend Integration** (`frontend/src/pages/Dashboard.jsx`)
+
 - **Removed**: Hardcoded wound analysis UI
 - **Added**: Import of Vision component
 - **Replaced**: Static wound analysis section with dynamic Vision component
@@ -22,28 +25,36 @@ Successfully integrated the backend services with the frontend components for th
 ### 3. **Backend API Endpoints**
 
 #### POST `/api/analyze-wound`
+
 - **Purpose**: Analyze surgical wound images using Groq Vision API
 - **Input**: Image file (multipart/form-data)
 - **Output**: 
+
   ```json
   {
     "analysis": "AI analysis text with severity score (X/10)"
   }
   ```
+
 - **Service**: `WoundAnalysisService` (uses Groq Llama Vision model)
 
 #### POST `/api/voice-to-text`
+
 - **Purpose**: Convert voice recordings to text using Sarvam AI
 - **Input**: Audio file (WAV format)
 - **Output**:
+
   ```json
   {
     "transcript": "Transcribed text from audio"
   }
+
   ```
+
 - **Service**: `SpeechToTextService`
 
 #### POST `/api/scan`
+
 - **Purpose**: Extract medical data from documents (PDF/TXT)
 - **Input**: Document file
 - **Output**: Extracted medical information as JSON
@@ -51,6 +62,7 @@ Successfully integrated the backend services with the frontend components for th
 ## Components
 
 ### 1. **Vision.jsx** (Frontend - Wound Analysis)
+
 - **Location**: `frontend/src/Vision.jsx`
 - **Features**:
   - Image upload with preview
@@ -61,6 +73,7 @@ Successfully integrated the backend services with the frontend components for th
   - Responsive design
 
 ### 2. **Voice.jsx** (Frontend - Voice Input)
+
 - **Location**: `frontend/src/Voice.jsx`
 - **Features**:
   - Browser microphone access (getUserMedia)
@@ -70,6 +83,7 @@ Successfully integrated the backend services with the frontend components for th
   - Responsive voice interface
 
 ### 3. **WoundAnalysisService** (Backend)
+
 - **Location**: `backend/services/wound_analysis.py`
 - **Features**:
   - Image encoding to base64
@@ -78,6 +92,7 @@ Successfully integrated the backend services with the frontend components for th
   - Error logging and handling
 
 ### 4. **SpeechToTextService** (Backend)
+
 - **Location**: `backend/services/speech_to_text.py`
 - **Features**:
   - Sarvam AI integration
@@ -88,6 +103,7 @@ Successfully integrated the backend services with the frontend components for th
 ## API Flow
 
 ```
+
 Frontend (Vision.jsx)
     ↓ [Image File Upload]
 Backend (POST /api/analyze-wound)
