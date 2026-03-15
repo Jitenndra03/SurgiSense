@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Heart, ChevronLeft, Pill, AlertCircle, Clock, CheckCircle, Package, MapPin, Phone } from "lucide-react";
-import { Progress } from "../components/ui/Progress";
+import { ChevronLeft, Pill, AlertCircle, Clock, CheckCircle, Package, MapPin, Navigation, Loader2 } from "lucide-react";
+import { Progress } from "../components/ui/Progress"; // Make sure this path matches your project structure
 import { motion } from "framer-motion";
+import axios from "axios";
 
 const fadeIn = {
   hidden: { opacity: 0, y: 16 },
@@ -12,8 +13,14 @@ const fadeIn = {
 export default function Pharmacy() {
   const [medications, setMedications] = useState([]);
   const [hasData, setHasData] = useState(true);
+  
+  // Pharmacy API States
+  const [nearbyPharmacies, setNearbyPharmacies] = useState([]);
+  const [loadingLocation, setLoadingLocation] = useState(false);
+  const [locationError, setLocationError] = useState(null);
 
   useEffect(() => {
+    // 1. Load medications from local storage
     const saved = localStorage.getItem('surgisense_active_meds');
     if (saved) {
       try {
@@ -29,7 +36,45 @@ export default function Pharmacy() {
     } else {
       setHasData(false);
     }
+    
+    // 2. Automatically try to find pharmacies on page load
+    findNearby();
   }, []);
+
+  const findNearby = () => {
+    setLoadingLocation(true);
+    setLocationError(null);
+
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation is not supported by your browser.");
+      setLoadingLocation(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          const res = await axios.get(
+            `http://localhost:8000/api/pharmacies/nearest?lat=${latitude}&lng=${longitude}`
+          );
+          setNearbyPharmacies(res.data);
+        } catch (err) {
+          setLocationError("Could not connect to the pharmacy database.");
+        } finally {
+          setLoadingLocation(false);
+        }
+      },
+      (error) => {
+        if (error.code === 1) {
+          setLocationError("Location access denied. Please allow location permissions in your browser URL bar.");
+        } else {
+          setLocationError("Unable to retrieve your location.");
+        }
+        setLoadingLocation(false);
+      }
+    );
+  };
 
   const orderHistory = [
     { date: "Feb 10, 2026", medication: "Acetaminophen 500mg", status: "Delivered" },
@@ -37,7 +82,7 @@ export default function Pharmacy() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#D3D0BC] to-[#D3D0BC]/90">
+    <div className="min-h-screen bg-gradient-to-b from-[#D3D0BC] to-[#D3D0BC]/90 pb-10">
       {/* Header */}
       <header className="bg-[#3E435D]/95 backdrop-blur-md px-5 py-3 sticky top-0 z-10 border-b border-white/5">
         <div className="max-w-4xl mx-auto flex items-center gap-3">
@@ -55,7 +100,8 @@ export default function Pharmacy() {
       </header>
 
       <motion.div initial="hidden" animate="visible" variants={fadeIn} className="max-w-4xl mx-auto px-5 py-6 space-y-5">
-        {/* Active Medications */}
+        
+        {/* Active Medications Section */}
         <section>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-[#3E435D] text-xl font-bold tracking-tight">Active Medications</h2>
@@ -76,50 +122,17 @@ export default function Pharmacy() {
           ) : (
             <div className="space-y-3">
               {medications.map((med, index) => (
-                <div key={med.id || index} className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 border border-[#3E435D]/5">
+                <div key={index} className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 border border-[#3E435D]/5">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
                       <h3 className="text-[#3E435D] text-base font-bold mb-0.5">{med.name || med.medication_name || "Prescription"}</h3>
                       <p className="text-[#9AA7B1] text-sm">{med.dosage || med.instructions || "Take as directed"}</p>
                     </div>
-                    {med.status === "low" && (
-                      <span className="bg-[#CBC3A5]/20 text-[#3E435D] px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1">
-                        <AlertCircle className="w-3.5 h-3.5" /> Low
-                      </span>
-                    )}
                   </div>
-
-                  <div className="mb-3">
-                    <div className="flex justify-between text-xs mb-1.5">
-                      <span className="text-[#9AA7B1]">Supply Remaining</span>
-                      <span className="text-[#3E435D] font-semibold">{med.daysRemaining || "14"} days</span>
-                    </div>
-                    <Progress value={med.progress || 100} className={`h-1.5 ${med.status === 'low' ? 'bg-[#CBC3A5]/30' : ''}`} />
-                  </div>
-
-                  <div className="bg-[#D3D0BC]/15 rounded-xl p-3 mb-3 flex items-center gap-3">
+                  <Progress value={med.progress || 100} className="h-1.5 mb-3" />
+                  <div className="bg-[#D3D0BC]/15 rounded-xl p-3 flex items-center gap-3">
                     <Clock className="w-4 h-4 text-[#3E435D]" />
-                    <div>
-                      <p className="text-[#9AA7B1] text-[11px]">Next Dose</p>
-                      <p className="text-[#3E435D] font-semibold text-sm">{med.nextDose || "As directed"}</p>
-                    </div>
-                  </div>
-
-                  <div className="border-t border-[#3E435D]/5 pt-3 mb-3">
-                    <p className="text-[#3E435D] text-xs">
-                      <span className="font-semibold">Instructions:</span> {med.instructions || med.dosage || "Follow doctor's instructions."}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-[#9AA7B1]">
-                      Refills: <span className="text-[#3E435D] font-semibold">{med.refillsLeft || 0}</span>
-                    </p>
-                    {med.status === "low" && (
-                      <button className="bg-[#3E435D] text-[#D3D0BC] px-4 py-2 rounded-xl font-semibold text-xs hover:bg-[#4a5070] transition-colors shadow-sm">
-                        Order Refill
-                      </button>
-                    )}
+                    <p className="text-[#3E435D] font-semibold text-sm">{med.nextDose || "As directed"}</p>
                   </div>
                 </div>
               ))}
@@ -127,28 +140,64 @@ export default function Pharmacy() {
           )}
         </section>
 
-        {/* Pharmacy Info */}
+        {/* NEAREST PHARMACIES (API Integrated) */}
         <section className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 border border-[#3E435D]/5">
-          <div className="flex items-center gap-2.5 mb-4">
-            <div className="w-9 h-9 bg-[#3E435D] rounded-xl flex items-center justify-center">
-              <Package className="w-5 h-5 text-[#CBC3A5]" />
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 bg-[#3E435D] rounded-xl flex items-center justify-center">
+                <Package className="w-5 h-5 text-[#CBC3A5]" />
+              </div>
+              <h2 className="text-[#3E435D] text-base font-bold">Nearby Pharmacies</h2>
             </div>
-            <h2 className="text-[#3E435D] text-base font-bold">Your Pharmacy</h2>
+            
+            {/* The Highly Visible Button */}
+            <button 
+              onClick={findNearby}
+              disabled={loadingLocation}
+              className="bg-[#3E435D] text-[#D3D0BC] px-4 py-2 rounded-xl font-semibold text-sm hover:bg-[#4a5070] transition-colors flex items-center gap-2 shadow-sm disabled:opacity-70"
+            >
+              {loadingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
+              {loadingLocation ? "Locating..." : "Find Nearest"}
+            </button>
           </div>
-          <div className="bg-[#D3D0BC]/10 rounded-xl p-4 mb-3">
-            <h3 className="text-[#3E435D] font-semibold text-sm">CVS Pharmacy #4521</h3>
-            <div className="flex items-center gap-1.5 mt-1.5">
-              <MapPin className="w-3.5 h-3.5 text-[#9AA7B1]" />
-              <p className="text-[#9AA7B1] text-xs">2847 Oak Street, Suite 100, Springfield, IL 62701</p>
+
+          {locationError && (
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm mb-4 flex items-start gap-2">
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+              <p>{locationError}</p>
             </div>
-            <div className="flex items-center gap-1.5 mt-1">
-              <Phone className="w-3.5 h-3.5 text-[#9AA7B1]" />
-              <p className="text-[#3E435D] font-medium text-xs">(555) 123-4567</p>
-            </div>
+          )}
+
+          <div className="space-y-3">
+            {nearbyPharmacies.length > 0 ? (
+              nearbyPharmacies.map((pharm, idx) => (
+                <div key={idx} className="bg-[#D3D0BC]/10 rounded-xl p-4 flex justify-between items-center border border-[#3E435D]/5">
+                  <div className="flex-1 pr-4">
+                    <h3 className="text-[#3E435D] font-bold text-sm mb-1">{pharm.name}</h3>
+                    <div className="flex items-start gap-1.5 mt-1">
+                      <MapPin className="w-3.5 h-3.5 text-[#9AA7B1] shrink-0 mt-0.5" />
+                      <p className="text-[#596079] text-xs leading-snug">{pharm.address}</p>
+                    </div>
+                    <p className="text-[#3E435D] font-bold text-xs mt-2 bg-[#CBC3A5]/30 inline-block px-2 py-1 rounded-md">
+                      {pharm.distance_km} km away
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pharm.name + ' ' + pharm.address)}`)}
+                    className="p-3 bg-[#3E435D] text-[#D3D0BC] rounded-xl hover:bg-[#4a5070] transition-colors shadow-sm shrink-0"
+                  >
+                    <Navigation className="w-5 h-5" />
+                  </button>
+                </div>
+              ))
+            ) : (
+              !loadingLocation && !locationError && (
+                <p className="text-[#9AA7B1] text-sm italic text-center py-6 border-2 border-dashed border-[#CBC3A5]/30 rounded-xl">
+                  Click the button to scan for pharmacies near your location.
+                </p>
+              )
+            )}
           </div>
-          <button className="w-full border-2 border-[#3E435D]/15 text-[#3E435D] py-2.5 rounded-xl font-semibold text-sm hover:bg-[#3E435D] hover:text-[#D3D0BC] transition-all duration-200">
-            Change Pharmacy
-          </button>
         </section>
 
         {/* Order History */}
@@ -170,7 +219,7 @@ export default function Pharmacy() {
         </section>
 
         {/* Safety Information */}
-        <section className="bg-[#3E435D] rounded-2xl p-5">
+        <section className="bg-[#3E435D] rounded-2xl p-5 shadow-lg shadow-[#3E435D]/20">
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-[#CBC3A5] shrink-0 mt-0.5" />
             <div>
@@ -207,6 +256,7 @@ export default function Pharmacy() {
             </a>
           </div>
         </section>
+
       </motion.div>
     </div>
   );
